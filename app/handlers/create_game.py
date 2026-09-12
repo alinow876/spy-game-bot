@@ -166,4 +166,10 @@ async def _confirm_and_create_game(
 
     # Auto-delete this lobby if it never gets started within the configured
     # window (see app.services.lobby_timeout_service).
-    start_lobby_timeout(callback.bot, repo, chat_id, settings.lobby_timeout_seconds)
+    start_lobby_timeout(
+        callback.bot,
+        repo,
+        chat_id,
+        settings.lobby_timeout_seconds,
+        created_at=game.created_at,
+    )
