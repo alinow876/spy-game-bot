@@ -33,6 +33,14 @@ async def handle_vote(
         await callback.answer("الان زمان رای‌گیری نیست.", show_alert=True)
         return
 
+    # Reject taps on a panel from a previous voting round (stale Telegram UI).
+    if callback_data.voting_round != game.voting_round:
+        await callback.answer(
+            "این پنل مربوط به دور قبلی رای‌گیری است.",
+            show_alert=True,
+        )
+        return
+
     voter = game.get_player(voter_id)
     if voter is None or voter.eliminated or voter.left_mid_game:
         await callback.answer(

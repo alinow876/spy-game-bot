@@ -97,7 +97,7 @@ async def open_voting_phase(
 
     active = [p for p in game.players if not p.eliminated and not p.left_mid_game]
     text = build_voting_message_text(game)
-    keyboard = build_voting_keyboard(chat_id, active)
+    keyboard = build_voting_keyboard(chat_id, active, voting_round=game.voting_round)
     sent = await safe_send_message(bot, chat_id, text, reply_markup=keyboard)
     if sent is None:
         logger.error("open_voting_panel_failed", chat_id=chat_id)
@@ -205,7 +205,7 @@ async def _start_runoff(
     game = await repo.get_game(chat_id)
     assert game is not None
     text = build_voting_message_text(game, runoff=True)
-    keyboard = build_voting_keyboard(chat_id, tied_players)
+    keyboard = build_voting_keyboard(chat_id, tied_players, voting_round=2)
     sent = await safe_send_message(bot, chat_id, text, reply_markup=keyboard)
     await repo.set_message_id(chat_id, game_message_id=sent.message_id)
 

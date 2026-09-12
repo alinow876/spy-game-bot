@@ -260,7 +260,9 @@ async def _handle_in_game_leave(
             chat_id,
             game.game_message_id,
             build_voting_message_text(game),
-            reply_markup=build_voting_keyboard(chat_id, active),
+            reply_markup=build_voting_keyboard(
+                chat_id, active, voting_round=game.voting_round
+            ),
         )
 
     logger.info(

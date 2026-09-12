@@ -135,6 +135,7 @@ class GameStateRepository:
                 redis_keys.meta_key(chat_id),
                 redis_keys.players_key(chat_id),
                 redis_keys.order_key(chat_id),
+                redis_keys.votes_key(chat_id),
             ],
             args=flat_args,
         )
@@ -219,9 +220,12 @@ class GameStateRepository:
 
     async def record_vote(self, chat_id: int, voter_id: int, target_id: int) -> None:
         """Atomically record one player's vote during the voting phase."""
+        from app.config.settings import get_settings
+
+        ttl = get_settings().redis_game_ttl_seconds
         result = await self._vote_script(
             keys=[redis_keys.meta_key(chat_id), redis_keys.votes_key(chat_id)],
-            args=[str(voter_id), str(target_id)],
+            args=[str(voter_id), str(target_id), str(ttl)],
         )
         if result == -1:
             raise NotInVotingPhaseError(chat_id)
@@ -349,7 +353,7 @@ class GameStateRepository:
         lose the race and must not post a second voting panel.
         """
         result = await self._begin_voting_script(
-            keys=[redis_keys.meta_key(chat_id)],
+            keys=[redis_keys.meta_key(chat_id), redis_keys.votes_key(chat_id)],
             args=[repr(voting_ends_at)],
         )
         return int(result) == 1
