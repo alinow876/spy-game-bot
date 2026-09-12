@@ -23,6 +23,7 @@ from app.services.game_creation_service import create_new_game
 from app.services.lobby_timeout_service import start_lobby_timeout
 from app.utils.formatting import build_lobby_message_text
 from app.utils.logging import get_logger
+from app.utils.telegram_helpers import safe_edit_reply_markup
 
 logger = get_logger(__name__)
 router = Router(name="create_game")
@@ -86,7 +87,10 @@ async def handle_settings_callback(
         return
 
     if callback_data.action == SettingsAction.CANCEL:
-        await callback.message.delete()
+        try:
+            await callback.message.delete()
+        except Exception:  # noqa: BLE001 — already gone
+            pass
         await callback.answer("ساخت بازی لغو شد.")
         return
 
@@ -96,7 +100,7 @@ async def handle_settings_callback(
             round_seconds=callback_data.round_seconds,
             allow_two_spies=callback_data.allow_two_spies,
         )
-        await callback.message.edit_reply_markup(reply_markup=keyboard)
+        await safe_edit_reply_markup(callback.message, reply_markup=keyboard)
         await callback.answer()
         return
 

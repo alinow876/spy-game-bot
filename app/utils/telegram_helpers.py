@@ -1,4 +1,4 @@
-"""Safe Telegram Bot API helpers with light retry."""
+"""Safe Telegram Bot API helpers with light retry (stage-11 operational hardening)."""
 
 from __future__ import annotations
 
@@ -162,5 +162,32 @@ async def safe_edit_message_text(
             "safe_edit_message_text_failed",
             chat_id=chat_id,
             message_id=message_id,
+        )
+        return False
+
+
+async def safe_edit_reply_markup(
+    message: Message,
+    reply_markup: InlineKeyboardMarkup | None = None,
+) -> bool:
+    """Edit only the inline keyboard; ignore missing / not-modified messages."""
+
+    async def _call() -> None:
+        await message.edit_reply_markup(reply_markup=reply_markup)
+
+    try:
+        await _retry("edit_reply_markup", _call)
+        return True
+    except TelegramBadRequest as exc:
+        text = str(exc).lower()
+        if "message is not modified" in text or "message to edit not found" in text:
+            logger.debug("safe_edit_reply_markup_ignored", error=str(exc))
+            return False
+        logger.debug("safe_edit_reply_markup_ignored", error=str(exc))
+        return False
+    except Exception:
+        logger.exception(
+            "safe_edit_reply_markup_failed",
+            chat_id=getattr(message.chat, "id", None),
         )
         return False
