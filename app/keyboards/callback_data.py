@@ -68,7 +68,13 @@ class GameCallback(CallbackData, prefix="game"):
 
 
 class VoteCallback(CallbackData, prefix="vote"):
-    """Callback for casting a vote against a specific player."""
+    """Callback for casting a vote against a specific player.
+
+    ``voting_round`` binds the button to a specific voting generation so a
+    stale panel from round 1 cannot cast a vote after runoff starts.
+    Default 1 keeps unpacking of any legacy packed callbacks safe if needed.
+    """
 
     chat_id: int
     target_user_id: int
+    voting_round: int = 1
