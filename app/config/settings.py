@@ -42,6 +42,15 @@ class Settings(BaseSettings):
             return None
         return v.strip() if isinstance(v, str) else v
 
+    @field_validator("redis_password", "redis_username", "redis_url", mode="before")
+    @classmethod
+    def empty_redis_secret_as_none(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v.strip() if isinstance(v, str) else v
+
     # PostgreSQL — optional / unused until next stage (archival + stats).
     # Bot does not connect at startup; live state is Redis-only.
     postgres_user: str = "spybot"
@@ -54,6 +63,11 @@ class Settings(BaseSettings):
     redis_host: str = "redis"
     redis_port: int = 6379
     redis_db: int = 0
+    # Optional auth (managed Redis / Railway). Empty → no auth in URL.
+    redis_password: str | None = None
+    redis_username: str | None = None
+    # Optional full URL override (e.g. Railway REDIS_URL). If set, wins.
+    redis_url: str | None = None
 
     # Game defaults (used to seed a new game's settings panel)
     min_players: int = 3
@@ -98,8 +112,28 @@ class Settings(BaseSettings):
 
     @property
     def redis_dsn(self) -> str:
-        """Redis connection URL."""
-        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
+        """Redis connection URL (optional password / full URL for managed Redis).
+
+        Priority:
+        1. ``REDIS_URL`` if set (full URL from Railway etc.)
+        2. Built from host/port/db + optional ``REDIS_PASSWORD`` / ``REDIS_USERNAME``
+        """
+        from urllib.parse import quote
+
+        if self.redis_url:
+            return self.redis_url
+
+        auth = ""
+        if self.redis_password:
+            password = quote(self.redis_password, safe="")
+            if self.redis_username:
+                user = quote(self.redis_username, safe="")
+                auth = f"{user}:{password}@"
+            else:
+                # redis://:password@host — standard form without username
+                auth = f":{password}@"
+
+        return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
     @property
     def log_max_bytes(self) -> int:
